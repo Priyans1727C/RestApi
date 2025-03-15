@@ -7,6 +7,8 @@ from django.contrib.auth import authenticate
 from rest_framework.exceptions import AuthenticationFailed
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.http import urlsafe_base64_decode
 
 
 
@@ -62,3 +64,38 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     
     
     
+
+
+
+#Password Reset Serializer
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        # You can add any extra validation here.
+        return value
+
+class ResetPasswordSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+    def validate(self, data):
+        try:
+            uid = urlsafe_base64_decode(data["uid"]).decode()
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError, TypeError):
+            raise serializers.ValidationError({"uid": "Invalid UID"})
+
+        if not PasswordResetTokenGenerator().check_token(user, data["token"]):
+            raise serializers.ValidationError({"token": "Invalid or expired token"})
+
+        data["user"] = user  # Store user in validated data
+        return data
+
+    def save(self):
+        user = self.validated_data["user"]
+        user.set_password(self.validated_data["new_password"])  # Hash the password
+        user.save()
+        return user  # Ensure user is returned for debugging

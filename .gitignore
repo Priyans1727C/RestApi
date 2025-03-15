@@ -31,3 +31,6 @@ env/
 Thumbs.db
 
 staticfiles/
+
+
+apidoc.md
