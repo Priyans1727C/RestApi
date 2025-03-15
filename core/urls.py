@@ -20,6 +20,6 @@ from .views import root
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('/', root, name='root'),
+    path('', root, name='root'),
     path('api/auth/', include('api.authentication.urls')),
 ]
